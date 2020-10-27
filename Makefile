@@ -1,7 +1,7 @@
 CC=gcc 
 CFLAGS=-Wall -fPIC
 
-all: ahnoi
+all: hanoi
 hanoi: hanoi.o display.o
 hanoi.o: hanoi.c hanoi.h display.h
 display.o: display.c hanoi.h display.h
