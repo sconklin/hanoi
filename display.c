@@ -1,7 +1,3 @@
-
-
-
-
 /*
  * Name:	display.c
  *
@@ -21,9 +17,10 @@
 
 #include "hanoi.h"
 #include "display.h"
-#include <conio.h>
+#include <curses.h>
 #include <stdio.h>
-#include <dos.h>
+#include <stdlib.h>
+// #include <dos.h>
 
 /* global variables which all display routines might need */
 static	int	bottom_row,	/* line to display the base on		*/
@@ -47,10 +44,6 @@ static char	*empty;		/* pointer to the empty string		*/
 extern	int	_wscroll;	/* system variable to disable scrolling */
 
 /* ==================================================================== */
-
-
-
-
 
 /*  makedisk builds a string (2*numdisks)+1 char long in the
  *  char array buffer, with a disk of size disksize in the middle.
@@ -108,10 +101,6 @@ void show_move(int move)
 }
 
 /* ==================================================================== */
-
-
-
-
 
 /*  init_display() accepts the number of disks to be used, and initializes
  *  all of the display variables. It must be called before any other
@@ -172,10 +161,6 @@ void init_display(int num)
 	float_row = tower_top_row - 2;	/* for animated display	*/
 	_wscroll = 0;			/* turn of scrolling	*/
 	_setcursortype(_NOCURSOR);	/* hide the cursor	*/
-
-
-
-
 
 	/* clear screen and display the text */
 	clrscr();
@@ -193,10 +178,6 @@ void init_display(int num)
 }
 
 /* ==================================================================== */
-
-
-
-
 
 /*  max_disp_disks() returns the maximum number of disks that the display
  *  can handle. Since I assume an 80 column screen, I hard-coded to 12.
@@ -239,7 +220,6 @@ void put_disk(int tower, int height, int size)
 }
 
 /* ==================================================================== */
-
 
 /*  float_disk moves a disk by floating it up the pole, over to the
  *  new pole, and down again. The disk is moved from tower fr_tow
@@ -305,10 +285,6 @@ void float_disk(int fr_tow, int to_tow, int fr_h, int to_h)
 				fr_col-1,fr_h);
 		fr_col += dir;
 	}
-
-
-
-
 
 	/* lower the disk to the correct height */
 	while(fr_h < tower_top_row)
@@ -363,4 +339,3 @@ void show_towers(stack tower[])
 		}
 	}
 }
-

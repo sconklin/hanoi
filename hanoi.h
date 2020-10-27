@@ -1,6 +1,3 @@
-
-
-
 /*
  * Name:	hanoi.h
  *
@@ -63,4 +60,3 @@ typedef struct stacks {
  * if dir is 1, counts up - if dir is 2, counts down
  */
 #define AFTER(x)	(((x)+dir)%3)
-

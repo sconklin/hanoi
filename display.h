@@ -1,7 +1,3 @@
-
-
-
-
 /*
  * Name:	display.h
  *
@@ -105,4 +101,3 @@ void float_disk(int fr_tow, int to_tow, int fr_h, int to_h);
  */
 
 int max_disp_disks(void);
-

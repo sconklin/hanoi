@@ -1,7 +1,3 @@
-
-
-
-
 /*
  * Name:	hanoi.c
  *
@@ -21,7 +17,8 @@
  */
 
 #include <stdio.h>
-#include <conio.h>
+#include <stdlib.h>
+#include <curses.h>
 #include "hanoi.h"
 #include "display.h"
 
@@ -55,10 +52,6 @@ void	init_stacks(stack *tower, int disks)
 		tower[SOURCE].layer[i] = 0;
 }
 /* ===================================================================== */
-
-
-
-
 
 #ifdef HDEBUG
 /*  function dump_tower(tow,x,y) - for debugging
@@ -115,10 +108,6 @@ int c_brk(void)
 	return(0);
 }
 /* ===================================================================== */
-
-
-
-
 
 /* This is the workhorse */
 
@@ -178,10 +167,6 @@ main(int argc, char *argv[])
 		usage(max_can_do);
 		exit(1);
 	}
-
-
-
-
 
 	/* check the speed specified */
 	if((!speed) || (speed>4))
@@ -243,7 +228,6 @@ main(int argc, char *argv[])
 			push_stack(tmp,pop_stack(smallon));
 			smallon = tmp;			/* for next time */
 		}
-
 		else	/* it's an odd numbered move */
 		{
 			/* set a and b to the towers without the small disk */
@@ -309,4 +293,3 @@ main(int argc, char *argv[])
 	close_display();
 	return(0);
 }
-
