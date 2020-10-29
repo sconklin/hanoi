@@ -12,6 +12,7 @@
  * History:	8-6-91		Creation
  *		8-7-91		More work
  *		8-8-91		Added the float stuff
+ *		10-29-20	Ported for Linux
  *
  */
 
@@ -20,6 +21,7 @@
 #include <curses.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 // #include <dos.h>
 
 /* global variables which all display routines might need */
@@ -41,7 +43,8 @@ char	buffer[81];		/* used for drawing the base		*/
 static char	**disk;		/* array of pointers to strings		*/
 static char	*empty;		/* pointer to the empty string		*/
 
-extern	int	_wscroll;	/* system variable to disable scrolling */
+static WINDOW *mywindow;
+
 
 /* ==================================================================== */
 
@@ -84,10 +87,8 @@ void close_display(void)
 	}
 	if(empty)
 		free(empty);
-	textmode(LASTMODE);
-	_wscroll = 1;
-	_setcursortype(_NORMALCURSOR);
-	clrscr();
+    erase();
+    endwin();
 }
 
 /* ==================================================================== */
@@ -96,8 +97,7 @@ void close_display(void)
 
 void show_move(int move)
 {
-	gotoxy(moves_col,moves_row);
-	cprintf("%d",move);
+	mvprintw(moves_row,moves_col,"%d",move);
 }
 
 /* ==================================================================== */
@@ -109,8 +109,7 @@ void show_move(int move)
 
 void init_display(int num)
 {
-	struct text_info ti;	/* struct to hold info about window */
-	int i;
+	int i, tmpy, tmpx;
 
 	numdisks = num;		/* save this in our private variable */
 	text_len = (numdisks*2)+2; /* disk + pole + null */
@@ -153,28 +152,41 @@ void init_display(int num)
 		buffer[tower_col[i]-1] = BASEWPOLE;
 	buffer[80] = '\0';           			/* and terminator */
 
-	textmode(BW80);			/* set display to 80x25 */
-	gettextinfo(&ti);		/* get the display info	*/
-	bottom_row = ti.screenheight;	/* bottom row on screen */
+	/* clear screen and display the text */
+
+    mywindow = initscr();
+    cbreak();
+    noecho();
+	clear();
+    scrollok(mywindow,FALSE);
+    curs_set(0);
+
+    if ((LINES < 40) || (COLS < 80)) {
+        mvprintw(1,1,"Terminal must be at least 40x80");
+        mvprintw(2,1,"     Press any key to exit");
+        refresh();
+        getchar();
+        close_display();
+        exit(-1);
+        
+    }
+
+	bottom_row = LINES-1;	/* bottom row on screen */
+    printf("lines = %d\n", LINES-1);
 	tower_bot_row = bottom_row - 1;	/* lowest row on towers	*/
 	tower_top_row = tower_bot_row - num; /* top of pole	*/
 	float_row = tower_top_row - 2;	/* for animated display	*/
-	_wscroll = 0;			/* turn of scrolling	*/
-	_setcursortype(_NOCURSOR);	/* hide the cursor	*/
-
-	/* clear screen and display the text */
-	clrscr();
-	gotoxy(1,bottom_row);
-	cprintf("%s",buffer);
-	gotoxy(31,1);
-	cprintf("The Towers of Hanoi");
-	gotoxy(28,2);
-	cprintf("Programmer: Steve Conklin");
-	gotoxy(37,5);
-	cprintf("Moves: ");
-	moves_col = wherex(); /* save the location for the moves */
-	moves_row = wherey();
-	cprintf("0");
+    
+	mvprintw(bottom_row,1,"%s",buffer);
+	mvprintw(1,31,"The Towers of Hanoi");
+	mvprintw(2,28,"Programmer: Steve Conklin");
+	mvprintw(5,37,"Moves: ");
+    getyx(mywindow, tmpy, tmpx);
+    moves_row = tmpy;
+    moves_col = tmpx;
+    printf("%d %d\n", moves_row, moves_col);
+	printw("0");
+    refresh();
 }
 
 /* ==================================================================== */
@@ -194,8 +206,8 @@ int	max_disp_disks(void)
 
 void press_msg(void)
 {
-	gotoxy(10,8);
-	cprintf("Press any key to continue.");
+	mvprintw(8,10,"Press any key to continue.");
+    refresh();
 }
 
 /* ==================================================================== */
@@ -205,8 +217,8 @@ void press_msg(void)
 void remove_disk(int tower, int height)
 {
 	/* height starts at 0 for lowest row */
-	gotoxy(tower_col[tower]-numdisks,tower_bot_row-height);
-	cputs(empty);
+	mvprintw(tower_bot_row-height, tower_col[tower]-numdisks,"%s",empty);
+    refresh();
 }
 
 /* ==================================================================== */
@@ -215,8 +227,26 @@ void remove_disk(int tower, int height)
 
 void put_disk(int tower, int height, int size)
 {
-	gotoxy(tower_col[tower]-numdisks,tower_bot_row-height);
-	cputs(disk[size-1]);
+	mvprintw(tower_bot_row-height,tower_col[tower]-numdisks,"%s", disk[size-1]);
+    refresh();
+}
+
+/* ==================================================================== */
+
+/*  movetext() is a curses reeplacement for the Borland function
+ * used in the original code.
+ *
+ * NOTE: The Borland code could operatte over multiple lines, but it
+ * is only used over a single line in this program, so that's assumed.
+ */
+
+chtype chbuf[81];
+char space = ' ';
+void movetext(int left, int top, int right, int bottom, int newleft, int newtop)
+{
+    mvinchnstr(top, left, chbuf, right-left);
+    mvaddchstr(newtop, newleft, chbuf);
+    return;
 }
 
 /* ==================================================================== */
@@ -252,30 +282,30 @@ void float_disk(int fr_tow, int to_tow, int fr_h, int to_h)
 	/* move the disk up to the float row */
 	while(fr_h >= tower_top_row)
 	{
-		delay(VDEL);
+		usleep(VDEL * 1000);
 		movetext(fr_col,fr_h,fr_col+len,fr_h,fr_col,fr_h-1);
-		gotoxy(fr_col,fr_h);
-		puts(empty);
+        mvprintw(fr_h,fr_col,"%s", empty);
 		fr_h--;
+        refresh();
 	}
+
 	/* we are just above the pole, so remove the pole char */
-	gotoxy(fr_col+numdisks,fr_h);
-	putch(' ');	/* make a hole in the disk */
+    mvprintw(fr_h,fr_col+numdisks," ");	/* make a hole in the disk */
+    refresh();
 	while(fr_h > float_row)
 	{
-		delay(VDEL);
+		usleep(VDEL * 1000);
 		movetext(fr_col,fr_h,fr_col+len,fr_h,fr_col,fr_h-1);
-		gotoxy(fr_col,fr_h);
-		puts(empty);
-		gotoxy(fr_col+numdisks,fr_h);
-		putch(' ');
+        mvprintw(fr_h,fr_col,"%s",empty); // draws pole only
+        mvprintw(fr_h,fr_col+numdisks, " "); // removes pole
 		fr_h--;
+        refresh();
 	}
 
 	/* move the disk over the destination pole */
 	while(fr_col != to_col)
 	{
-		delay(HDEL);
+		usleep(HDEL * 1000);
 		/* index fudges on next lines prevent leftover chars */
 		if(dir == RIGHT) /* moving right */
 			movetext(fr_col-1,fr_h,fr_col+len,fr_h,
@@ -284,29 +314,28 @@ void float_disk(int fr_tow, int to_tow, int fr_h, int to_h)
 			movetext(fr_col,fr_h,fr_col+len+1,fr_h,
 				fr_col-1,fr_h);
 		fr_col += dir;
+        refresh();
 	}
 
 	/* lower the disk to the correct height */
 	while(fr_h < tower_top_row)
 	{
-		delay(VDEL);
+		usleep(VDEL * 1000);
 		movetext(fr_col,fr_h,fr_col+len,fr_h,fr_col,fr_h+1);
-		gotoxy(fr_col,fr_h);
-		puts(empty);
-		gotoxy(fr_col+numdisks,fr_h);
-		putch(' ');
+        mvprintw(fr_h,fr_col,"%s",empty);
+        mvprintw(fr_h,fr_col+numdisks," ");
 		fr_h++;
+        refresh();
 	}
 	/* put the pole char back into the disk */
-	gotoxy(to_col+numdisks,fr_h);
-	putch(POLE);
+    mvprintw(fr_h,to_col+numdisks,"%c", POLE);
 	while(fr_h < to_h)
 	{
-		delay(VDEL);
+		usleep(VDEL * 1000);
 		movetext(fr_col,fr_h,fr_col+len,fr_h,fr_col,fr_h+1);
-		gotoxy(fr_col,fr_h);
-		puts(empty);
+        mvprintw(fr_h,fr_col,"%s",empty);
 		fr_h++;
+        refresh();
 	}
 }
 
@@ -328,14 +357,13 @@ void show_towers(stack tower[])
 		for(j=0,row=tower_bot_row;j<tower[i].top;j++,row--)
 		{
 			disksize = tower[i].layer[j];
-			gotoxy(start_col,row);
-			cputs(disk[disksize-1]);
+            mvprintw(row,start_col,"%s",disk[disksize-1]);
 		}
 		/* and extend the pole to the top */
 		while(row >= tower_top_row)
 		{
-			gotoxy(start_col,row--);
-			cputs(empty); /* blank lines with pole */
+            mvprintw(row--,start_col,"%s",empty); /* blank lines with pole */
 		}
 	}
+    refresh();
 }

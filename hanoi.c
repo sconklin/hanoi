@@ -13,12 +13,15 @@
  * History:	8-6-91		Creation
  *		8-7-91		Lot of work! done, needs clean-up
  *		8-8-91		Added float_disk stuff. Done!
+ *		10-29-20	Ported for Linux
  *
  */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <curses.h>
+#include <unistd.h>
 #include "hanoi.h"
 #include "display.h"
 
@@ -53,31 +56,6 @@ void	init_stacks(stack *tower, int disks)
 }
 /* ===================================================================== */
 
-#ifdef HDEBUG
-/*  function dump_tower(tow,x,y) - for debugging
- *  Dumps tower number tow at location x,y on the screen.
- *  Warning - this will probably have to change if graphics display
- * support is added. This should probably be in display.c
- */
-
-void dump_tower(stack tow,int x,int y)
-{
-	int i;
-	gotoxy(x,y++);
-	cprintf("dump of tower");
-	gotoxy(x,y+=2);
-	cprintf("top = %d",tow.top);
-	y++;
-	for(i=0;i<MAXDISKS;i++,y++)
-	{
-		gotoxy(x,y);
-		cprintf("tow.layer[%d] = %d",i,tow.layer[i]);
-	}
-}
-#endif
-
-/* ===================================================================== */
-
 /*  print a usage message - accepts the maximum number of disks that
  *  can be accomodated
  */
@@ -101,17 +79,17 @@ void usage(int max)
 /* ===================================================================== */
 
 /* the user interrupt handler  - we come here if ^C hit */
-int c_brk(void)
+void c_brk(int foo)
 {
 	close_display();
 	printf("User Interrupt.\n");
-	return(0);
+    exit(0);
 }
 /* ===================================================================== */
 
 /* This is the workhorse */
 
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 
 {
 	unsigned long moves = 0L; /* the current number of moves made	*/
@@ -133,9 +111,8 @@ main(int argc, char *argv[])
 	int	to_h;		/* height the move was to		*/
 	int	size_moved;	/* size of the disk moved		*/
 
-	/* turn on the user interrupt handler */
-	ctrlbrk(c_brk);
-	setcbrk(1);
+	/* set the user interrupt handler */
+    signal(SIGINT, c_brk);
 
 	tmp = max_disp_disks();	/* find out how many the display can handle */
 	max_can_do = (MAXDISKS>tmp)?tmp:MAXDISKS; /* select the smaller */
@@ -186,7 +163,7 @@ main(int argc, char *argv[])
 	init_display(disks);
 	/* do the initial display and pause to give a good look */
 	show_towers(tower);
-	sleep(1);
+	usleep(1000);
 
 	/* we start with the small disk on the SOURCE peg */
 	smallon = 0;
@@ -194,8 +171,7 @@ main(int argc, char *argv[])
 	if(speed == 3)
 	{
 		press_msg();
-		while(!kbhit());
-		getch();
+        getchar();
 	}
 
 	/*  The algorithm used here is not recursive, but yields the
@@ -271,8 +247,7 @@ main(int argc, char *argv[])
 				remove_disk(fr_tow,fr_h);
 				put_disk(to_tow,to_h,size_moved);
 				press_msg();
-				while(!kbhit());
-				getch();
+				getchar();
 				break;
 			case 4:	/* animated display */
 				float_disk(fr_tow,to_tow,fr_h,to_h);
@@ -286,8 +261,7 @@ main(int argc, char *argv[])
 	if(speed != 3)
 	{
 		press_msg();
-		while(!kbhit());
-		getch();
+		getchar();
 	}
 	/* shut down the display and quit */
 	close_display();

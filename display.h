@@ -9,6 +9,7 @@
  * History:	8-6-91		Creation
  *		8-7-91		More work
  *		8-8-91		added float_disk
+ *		10-29-20	Ported for Linux
  *
  */
 
@@ -23,15 +24,20 @@
 #define	LEFT	-1		/* direction for float movement	*/
 #define	RIGHT	1
 
-/*  These are the octal character codes for the text representations
- *  of various parts to be drawn. They are from the PC extended character
+/*  These are the character codes for the text representations
+ *  of various parts to be drawn. The original program used the PC extended character
  *  set.
  */
 
-#define BASE		'\315'	/* the baseplate for all the towers	*/
-#define BASEWPOLE	'\317'	/* where the base and pole meet		*/
-#define DISK		'\334'	/* the solid block for the disk		*/
-#define POLE		'\263'	/* the pole character			*/
+//#define BASE		'\315'	/* the baseplate for all the towers	*/
+//#define BASEWPOLE	'\317'	/* where the base and pole meet		*/
+//#define DISK		'\334'	/* the solid block for the disk		*/
+//#define POLE		'\263'	/* the pole character			*/
+
+#define BASE		'-'	/* the baseplate for all the towers	*/
+#define BASEWPOLE	'+'	/* where the base and pole meet		*/
+#define DISK		'='	/* the solid block for the disk		*/
+#define POLE		'|'	/* the pole character			*/
 
 /*  init_display() accepts the number of disks to be used and initializes
  *  the display software and hardware. This function must be called
@@ -53,10 +59,6 @@ void show_move(int move);
  */
 
 void makedisk(char *buffer, int num, int disksize);
-
-
-
-
 
 /*  show_towers() draws all three towers and the disks on them as
  *  represented by the tower data structure.
